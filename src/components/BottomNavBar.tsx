@@ -19,7 +19,7 @@ export function BottomNavBar({ hidden = false }: { hidden?: boolean }) {
     )}>
       {navItems.map((item, index) => {
         const isActive = location.pathname === item.path || (item.path === '/browse' && location.pathname === '/');
-        const hasNotification = item.label === 'Notifications'; // Mock notification dot
+        const hasNotification = false; // Disable mock notification dot as requested
         return (
           <Link
             key={index}
