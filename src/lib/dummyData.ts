@@ -1,0 +1,54 @@
+export const DUMMY_PROFILES = [
+  {
+    id: 'dummy_alex',
+    displayName: 'Alex M, 24',
+    location: 'Mumbai, IN',
+    photos: ['https://picsum.photos/seed/alex1/800/1000', 'https://picsum.photos/seed/alex2/800/1000']
+  },
+  {
+    id: 'dummy_sarah',
+    displayName: 'Sarah K, 22',
+    location: 'London, UK',
+    photos: ['https://picsum.photos/seed/sarah1/800/1000']
+  },
+  {
+    id: 'dummy_jordan',
+    displayName: 'Jordan T, 26',
+    location: 'New York, US',
+    photos: ['https://picsum.photos/seed/jordan1/800/1000', 'https://picsum.photos/seed/jordan2/800/1000']
+  },
+  {
+    id: 'dummy_emma',
+    displayName: 'Emma L, 23',
+    location: 'Toronto, CA',
+    photos: ['https://picsum.photos/seed/emma1/800/1000', 'https://picsum.photos/seed/emma2/800/1000']
+  },
+  {
+    id: 'dummy_liam',
+    displayName: 'Liam P, 27',
+    location: 'Berlin, DE',
+    photos: ['https://picsum.photos/seed/liam1/800/1000']
+  },
+  {
+    id: 'dummy_mia',
+    displayName: 'Mia R, 21',
+    location: 'Paris, FR',
+    photos: ['https://picsum.photos/seed/mia1/800/1000', 'https://picsum.photos/seed/mia2/800/1000']
+  },
+  {
+    id: 'dummy_noah',
+    displayName: 'Noah J, 25',
+    location: 'Tokyo, JP',
+    photos: ['https://picsum.photos/seed/noah1/800/1000']
+  },
+  {
+    id: 'dummy_olivia',
+    displayName: 'Olivia S, 28',
+    location: 'Austin, US',
+    photos: ['https://picsum.photos/seed/olivia1/800/1000', 'https://picsum.photos/seed/olivia2/800/1000']
+  }
+];
+
+export function getDummyProfile(id: string) {
+  return DUMMY_PROFILES.find(p => p.id === id) || null;
+}

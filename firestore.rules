@@ -1,0 +1,121 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "katukojwala.sharathchandra2429@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUserPrivate(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'role', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['user', 'admin'] &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidUserPublic(data) {
+      return hasOnlyAllowedFields(['uid', 'displayName', 'location', 'photos', 'reviewsGivenCount', 'averageRating', 'totalRatings', 'ratingBreakdown', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 50)) &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 100)) &&
+             (!('photos' in data) || (data.photos is list && data.photos.size() <= 5)) &&
+             (!('reviewsGivenCount' in data) || (data.reviewsGivenCount is number && data.reviewsGivenCount >= 0)) &&
+             (!('averageRating' in data) || (data.averageRating is number && data.averageRating >= 0 && data.averageRating <= 5)) &&
+             (!('totalRatings' in data) || (data.totalRatings is number && data.totalRatings >= 0)) &&
+             (!('ratingBreakdown' in data) || (data.ratingBreakdown is map && data.ratingBreakdown.keys().hasOnly(['1', '2', '3', '4', '5']))) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidRating(data) {
+      return hasOnlyAllowedFields(['raterId', 'targetId', 'score', 'comment', 'createdAt']) &&
+             data.raterId is string && data.raterId == request.auth.uid &&
+             data.targetId is string && data.targetId.size() > 0 && data.targetId.size() < 100 &&
+             data.score is number && data.score >= 1 && data.score <= 5 &&
+             (!('comment' in data) || (data.comment is string && data.comment.size() <= 500)) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidBlock(data) {
+      return hasOnlyAllowedFields(['blockerId', 'blockedId', 'createdAt']) &&
+             data.blockerId is string && data.blockerId == request.auth.uid &&
+             data.blockedId is string && data.blockedId.size() > 0 && data.blockedId.size() < 100 &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && 
+                    isOwner(userId) && 
+                    isValidUserPrivate(request.resource.data) && 
+                    (request.resource.data.role == 'user' || isAdmin()) &&
+                    request.resource.data.uid == userId;
+      allow update: if isAuthenticated() && 
+                    isOwner(userId) && 
+                    isValidUserPrivate(request.resource.data) && 
+                    (request.resource.data.role == resource.data.role || isAdmin()) &&
+                    request.resource.data.uid == resource.data.uid &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /publicProfiles/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                    isOwner(userId) && 
+                    isValidUserPublic(request.resource.data) &&
+                    request.resource.data.uid == userId;
+      allow update: if isAuthenticated() && 
+                    isOwner(userId) && 
+                    isValidUserPublic(request.resource.data) &&
+                    request.resource.data.uid == resource.data.uid &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /ratings/{ratingId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.raterId || request.auth.uid == resource.data.targetId || isAdmin());
+      allow create: if isAuthenticated() && 
+                    isValidRating(request.resource.data) &&
+                    request.resource.data.raterId == request.auth.uid;
+      allow update: if false; // Ratings cannot be updated
+      allow delete: if false; // Ratings cannot be deleted
+    }
+
+    match /blocks/{blockId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.blockerId || isAdmin());
+      allow create: if isAuthenticated() && 
+                    isValidBlock(request.resource.data) &&
+                    request.resource.data.blockerId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-surface-dim: #0F0F11;
+  --color-surface-container-low: #141416;
+  --color-surface-container: #1C1C1E;
+  --color-surface-container-highest: #2D2D30;
+  --color-surface-variant: #353538;
+  
+  --color-primary-container: #FF4D6D;
+  --color-primary-container-end: #FF8BA0;
+  
+  --color-tertiary: #FF8BA0;
+  --color-tertiary-star: #FCA311;
+  
+  --color-success: #4caf84;
+  
+  --color-on-surface: #F0EEE8;
+  --color-on-surface-muted: #8A8894;
+  --color-on-primary-fixed: #FFFFFF;
+  
+  --color-outline-variant: #3A3A3C;
+}
+
+body {
+  background-color: var(--color-surface-dim);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+.bg-coral-gradient {
+  background: linear-gradient(135deg, #FF8BA0 0%, #FF4D6D 100%);
+}
+
+.text-coral-gradient {
+  background: linear-gradient(135deg, #FF8BA0 0%, #FF4D6D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-sunset-gradient {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FFA07A 100%);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-nav {
+  background: rgba(40, 40, 45, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.blob-bg {
+  position: absolute;
+  filter: blur(80px);
+  z-index: -1;
+  opacity: 0.6;
+  border-radius: 50%;
+}
+
+
+.input-fill {
+  background-color: #2D2D30;
+}
+
+.ghost-stroke {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Mobile Safe Area Insets for Capacitor */
+.pt-safe {
+  padding-top: calc(env(safe-area-inset-top) + 24px);
+}
+
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 40px);
+}

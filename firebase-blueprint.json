@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Private user data, only accessible by the owner.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "UserPublic": {
+      "title": "UserPublic",
+      "description": "Public profile data, accessible by authenticated users.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "location": { "type": "string" },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "reviewsGivenCount": { "type": "number" },
+        "averageRating": { "type": "number" },
+        "totalRatings": { "type": "number" },
+        "ratingBreakdown": { 
+          "type": "object", 
+          "properties": {
+            "1": { "type": "number" },
+            "2": { "type": "number" },
+            "3": { "type": "number" },
+            "4": { "type": "number" },
+            "5": { "type": "number" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "createdAt"]
+    },
+    "Rating": {
+      "title": "Rating",
+      "description": "A rating given by one user to another.",
+      "type": "object",
+      "properties": {
+        "raterId": { "type": "string" },
+        "targetId": { "type": "string" },
+        "score": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["raterId", "targetId", "score", "createdAt"]
+    },
+    "Block": {
+      "title": "Block",
+      "description": "Records representing a user blocking another user.",
+      "type": "object",
+      "properties": {
+        "blockerId": { "type": "string" },
+        "blockedId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["blockerId", "blockedId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPrivate" },
+      "description": "Stores private user data."
+    },
+    "/publicProfiles/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublic" },
+      "description": "Stores public user profiles."
+    },
+    "/ratings/{ratingId}": {
+      "schema": { "$ref": "#/entities/Rating" },
+      "description": "Stores all ratings."
+    },
+    "/blocks/{blockId}": {
+      "schema": { "$ref": "#/entities/Block" },
+      "description": "Stores all block records."
+    }
+  }
+}
