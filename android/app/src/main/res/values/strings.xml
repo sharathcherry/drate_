@@ -4,4 +4,7 @@
     <string name="title_activity_main">Drate</string>
     <string name="package_name">com.drate.app</string>
     <string name="custom_url_scheme">com.drate.app</string>
+    
+    <!-- IMPORTANT: Replace with your actual Web Client ID from Google Cloud / Firebase Console for Native Google Sign-In -->
+    <string name="server_client_id">YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com</string>
 </resources>
