@@ -139,7 +139,7 @@ export default function SetupProfile() {
   };
 
   return (
-    <main className="w-full min-h-[100dvh] bg-[#0F0F11] flex flex-col relative overflow-hidden pb-32 max-w-[760px] mx-auto pt-[env(safe-area-inset-top)]">
+    <main className="w-full min-h-[100dvh] bg-[#0F0F11] flex flex-col relative overflow-hidden pb-32 max-w-[760px] mx-auto pt-0">
       <div className="blob-bg w-[400px] h-[400px] bg-[#9C3241] top-[-150px] right-[-150px]"></div>
       <div className="blob-bg w-[300px] h-[300px] bg-[#5C168C] bottom-[10%] left-[-150px]"></div>
 
@@ -244,7 +244,7 @@ export default function SetupProfile() {
       </section>
 
       {/* Bottom Action */}
-      <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[760px] px-6 pb-[calc(24px+env(safe-area-inset-bottom))] pt-8 bg-gradient-to-t from-[#0F0F11] via-[#0F0F11]/80 to-transparent z-20">
+      <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[760px] px-6 pb-8 pt-8 bg-gradient-to-t from-[#0F0F11] via-[#0F0F11]/80 to-transparent z-20">
         <button 
           onClick={handleSave}
           disabled={isSaving || isUploading}

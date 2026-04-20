@@ -82,7 +82,7 @@ export default function Login() {
   };
 
   return (
-    <main className="flex-grow flex flex-col min-h-[100dvh] bg-[#0F0F11] relative overflow-hidden pt-[env(safe-area-inset-top)]">
+    <main className="flex-grow flex flex-col min-h-[100dvh] bg-[#0F0F11] relative overflow-hidden pt-0">
       <div className="blob-bg w-[400px] h-[400px] bg-[#9C3241] top-[-100px] left-[-150px]"></div>
       <div className="blob-bg w-[300px] h-[300px] bg-[#5C168C] bottom-[150px] right-[-100px]"></div>
 

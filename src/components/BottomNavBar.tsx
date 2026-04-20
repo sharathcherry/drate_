@@ -15,7 +15,7 @@ export function BottomNavBar({ hidden = false }: { hidden?: boolean }) {
   return (
     <nav className={cn(
       "fixed left-1/2 -translate-x-1/2 w-[90%] max-w-sm flex justify-around items-center px-4 py-3 glass-nav rounded-full z-50 transition-all duration-300",
-      hidden ? "bottom-[-100px] opacity-0 pointer-events-none" : "bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] opacity-100"
+      hidden ? "bottom-[-100px] opacity-0 pointer-events-none" : "bottom-6 opacity-100"
     )}>
       {navItems.map((item, index) => {
         const isActive = location.pathname === item.path || (item.path === '/browse' && location.pathname === '/');

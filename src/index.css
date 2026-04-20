@@ -89,11 +89,11 @@ body {
   scrollbar-width: none;  /* Firefox */
 }
 
-/* Mobile Safe Area Insets for Capacitor */
+/* Mobile Safe Area Insets for Capacitor - Standardized to match Web view */
 .pt-safe {
-  padding-top: calc(env(safe-area-inset-top) + 24px);
+  padding-top: 24px;
 }
 
 .pb-safe {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 40px);
+  padding-bottom: 40px;
 }

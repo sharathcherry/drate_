@@ -8,6 +8,10 @@
 			"providers": [
 				"google.com"
 			]
+		},
+		"StatusBar": {
+			"style": "DARK",
+			"overlay": true
 		}
 	}
 }

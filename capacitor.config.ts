@@ -9,6 +9,10 @@ const config: CapacitorConfig = {
       skipNativeAuth: false,
       providers: ["google.com"],
     },
+    StatusBar: {
+      style: 'DARK',
+      overlay: true,
+    },
   },
 };
 
