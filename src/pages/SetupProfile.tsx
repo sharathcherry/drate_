@@ -95,7 +95,9 @@ export default function SetupProfile() {
     try {
       const idToken = await auth.currentUser.getIdToken();
       let downloadURL: string;
+      
       try {
+        setUploadProgress(5);
         downloadURL = await uploadPhotoWithPresignedUrl(
           {
             file,
@@ -103,21 +105,33 @@ export default function SetupProfile() {
             photoNum,
             idToken,
           },
-          setUploadProgress,
+          (p) => setUploadProgress(5 + (p * 0.95))
         );
-      } catch (presignedError) {
-        // Fallback for browser-side S3 CORS/network issues.
+      } catch (presignedError: any) {
+        console.warn('S3 upload failed, attempt fallback to Firebase:', presignedError);
+        // If it's a server config error, don't just silently fallback if we want to debug S3
+        if (presignedError.message?.includes('Server misconfigured')) {
+          throw presignedError; 
+        }
+        
         const storagePath = `profiles/${auth.currentUser.uid}/photo_${photoNum}_${Date.now()}_${file.name}`;
-        downloadURL = await uploadFileWithProgress(storage, storagePath, file, setUploadProgress);
+        downloadURL = await uploadFileWithProgress(storage, storagePath, file, (p) => setUploadProgress(p));
       }
       
       if (photoNum === 1) setPhoto1(downloadURL);
       if (photoNum === 2) setPhoto2(downloadURL);
     } catch (error: any) {
       console.error('Error uploading photo:', error);
-      const code = error?.code ? String(error.code) : 'unknown';
-      const message = error?.message ? String(error.message) : 'No error message from upload service.';
-      alert(`Failed to upload photo.\n\nCode: ${code}\nMessage: ${message}`);
+      const message = error?.message ? String(error.message) : 'Unknown upload error.';
+      
+      let userFriendlyMessage = message;
+      if (message.includes('Missing AWS credentials')) {
+        userFriendlyMessage = "AWS S3 keys are not set in the AI Studio menu. Please add AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, and AWS_S3_BUCKET to your Secrets.";
+      } else if (message.includes('CORS')) {
+        userFriendlyMessage = "Upload blocked by S3 CORS policy. Please enable CORS in your AWS S3 bucket settings.";
+      }
+      
+      alert(`Upload Error:\n\n${userFriendlyMessage}`);
     } finally {
       setIsUploading(false);
       setUploadProgress(null);

@@ -60,9 +60,19 @@ function getSigningEndpoint(): string {
     return endpoint;
   }
 
-  // On Vercel, use the colocated serverless function when env is not set.
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return `${window.location.origin}/api/sign-upload`;
+  // Handle Capacitor/Mobile: window.location.origin is often http://localhost
+  // which won't work for hitting a remote backend.
+  if (typeof window !== 'undefined') {
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || window.location.protocol === 'capacitor:';
+    
+    if (isCapacitor && isLocalhost && !endpoint) {
+       console.warn('Capacitor detected: Accessing /api/sign-upload on localhost will likely fail. Please set VITE_UPLOAD_SIGN_URL to your live server URL.');
+    }
+
+    if (window.location?.origin) {
+      return `${window.location.origin}/api/sign-upload`;
+    }
   }
 
   throw new Error(
@@ -83,6 +93,8 @@ export async function uploadPhotoWithPresignedUrl(
   const endpoint = getSigningEndpoint();
   const uploadFile = await normalizeUploadFile(file);
 
+  if (onProgress) onProgress(0);
+
   let signRes: Response;
   try {
     signRes = await fetch(endpoint, {
@@ -91,6 +103,7 @@ export async function uploadPhotoWithPresignedUrl(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${idToken}`,
       },
+      signal: AbortSignal.timeout(10000), // 10s timeout to avoid indefinite 0% hang
       body: JSON.stringify({
         uid,
         photoNum,
@@ -102,21 +115,22 @@ export async function uploadPhotoWithPresignedUrl(
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Could not reach signing endpoint (${endpoint}). Check network and endpoint configuration. ${detail}`,
+      `Could not reach signing server. Check if your backend is running and env VITE_UPLOAD_SIGN_URL is correct. Detail: ${detail}`,
     );
   }
 
   if (!signRes.ok) {
-    const text = await signRes.text();
-    throw new Error(`Signing endpoint failed (${signRes.status}): ${text || 'No response body'}`);
+    const data = await signRes.json().catch(() => ({}));
+    const errorMessage = data.error || `Server Error (${signRes.status})`;
+    throw new Error(`Signing failed: ${errorMessage}`);
   }
 
   const signed = (await signRes.json()) as PresignedResponse;
   if (!signed.uploadUrl) {
-    throw new Error('Signing endpoint response missing uploadUrl');
+    throw new Error('Signing response missing uploadUrl');
   }
 
-  if (onProgress) onProgress(10);
+  if (onProgress) onProgress(20);
 
   const method = signed.method || 'PUT';
   const uploadHeaders: Record<string, string> = {
