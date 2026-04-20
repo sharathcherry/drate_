@@ -3,6 +3,8 @@ import { BottomNavBar } from '../components/BottomNavBar';
 import { Bell, Star } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { formatTimeAgo, toUnixMs } from '../lib/time';
+import type { TimestampLike } from '../lib/types';
 
 interface NotificationData {
   id: string;
@@ -10,30 +12,15 @@ interface NotificationData {
   targetId?: string;
   score?: number;
   comment?: string;
-  createdAt?: any;
-  raterProfile?: any;
-}
-
-function formatTimeAgo(timestamp: any) {
-  if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return 'Just now';
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return `${diffInDays}d ago`;
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return `${diffInMonths}mo ago`;
-  return `${Math.floor(diffInMonths / 12)}y ago`;
+  createdAt?: TimestampLike;
+  raterProfile?: {
+    displayName?: string;
+    photos?: string[];
+  } | null;
 }
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,7 +35,7 @@ export default function Notifications() {
         const snapshot = await getDocs(q);
         
         // Use a local cache to avoid fetching the same raterProfile multiple times
-        const profileCache: Record<string, any> = {};
+        const profileCache: Record<string, NotificationData['raterProfile']> = {};
         
         // Execute profile fetches concurrently using Promise.all
         const notifData = await Promise.all(snapshot.docs.map(async (docSnap) => {
@@ -80,8 +67,8 @@ export default function Notifications() {
         
         // Sort by createdAt descending in memory
         notifData.sort((a, b) => {
-          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          const timeA = toUnixMs(a.createdAt);
+          const timeB = toUnixMs(b.createdAt);
           return timeB - timeA;
         });
 
@@ -122,6 +109,9 @@ export default function Notifications() {
         ) : (
           <div className="space-y-4">
             {notifications.map(notif => (
+              (() => {
+                const score = notif.score ?? 0;
+                return (
               <div key={notif.id} className="glass-panel rounded-[20px] p-4 flex gap-4 items-center">
                 <div className="w-[52px] h-[52px] rounded-full overflow-hidden shrink-0 bg-black/20 border border-white/5">
                   <img 
@@ -142,15 +132,17 @@ export default function Notifications() {
                   <div className="flex gap-0.5 mt-1">
                     {[1, 2, 3, 4, 5].map(i => (
                       <Star 
-                        key={i} 
-                        className={i <= notif.score ? "text-[#F5C842]" : "text-white/20"} 
+                        key={i}
+                        className={i <= score ? "text-[#F5C842]" : "text-white/20"} 
                         size={14} 
-                        fill={i <= notif.score ? "currentColor" : "none"} 
+                        fill={i <= score ? "currentColor" : "none"} 
                       />
                     ))}
                   </div>
                 </div>
               </div>
+                );
+              })()
             ))}
           </div>
         )}

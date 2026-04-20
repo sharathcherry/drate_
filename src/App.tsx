@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import React, { useEffect, useState, Suspense } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from './firebase';
+import { StartupSplash } from './components/StartupSplash';
 
 const Login = React.lazy(() => import('./pages/Login'));
 const SetupProfile = React.lazy(() => import('./pages/SetupProfile'));
@@ -11,7 +12,7 @@ const Ratings = React.lazy(() => import('./pages/Ratings'));
 const Notifications = React.lazy(() => import('./pages/Notifications'));
 
 export default function App() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,12 +24,12 @@ export default function App() {
   }, []);
 
   if (loading) {
-    return <div className="min-h-[100dvh] bg-[#131315] flex items-center justify-center text-[#F0EEE8]">Loading...</div>;
+    return <StartupSplash />;
   }
 
   return (
     <Router>
-      <Suspense fallback={<div className="min-h-[100dvh] bg-[#131315] flex items-center justify-center text-[#F0EEE8]">Loading...</div>}>
+      <Suspense fallback={<StartupSplash />}>
         <Routes>
           <Route path="/" element={!user ? <Login /> : <Navigate to="/setup" />} />
           <Route path="/setup" element={user ? <SetupProfile /> : <Navigate to="/" />} />

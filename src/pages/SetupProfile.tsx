@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Plus, Verified, Clock, Wand2 } from 'lucide-react';
-import { auth, db, storage } from '../firebase';
+import { auth, db } from '../firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { uploadPhotoWithPresignedUrl } from '../lib/presignedUpload';
-import { uploadFileWithProgress } from '../lib/firebaseUpload';
+import { uploadPhotoWithPresignedUrl, getSigningEndpoint } from '../lib/presignedUpload';
+import { StartupSplash } from '../components/StartupSplash';
+import { timeoutPromise } from '../lib/async';
+import { createEmptyRatingBreakdown } from '../lib/ratingStats';
 
 export default function SetupProfile() {
   const navigate = useNavigate();
@@ -15,7 +17,11 @@ export default function SetupProfile() {
   const [displayNameInput, setDisplayNameInput] = useState(auth.currentUser?.displayName || '');
   const [checking, setChecking] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState<1 | 2 | null>(null);
+  const [uploadProgressByPhoto, setUploadProgressByPhoto] = useState<Record<1 | 2, number | null>>({
+    1: null,
+    2: null,
+  });
   
   useEffect(() => {
     const checkExisting = async () => {
@@ -36,7 +42,7 @@ export default function SetupProfile() {
   }, [navigate]);
 
   if (checking) {
-    return <div className="min-h-screen bg-[#131315] flex items-center justify-center text-[#F0EEE8]">Loading...</div>;
+    return <StartupSplash />;
   }
 
   const handleSave = async () => {
@@ -72,7 +78,7 @@ export default function SetupProfile() {
         reviewsGivenCount: 0,
         averageRating: 0,
         totalRatings: 0,
-        ratingBreakdown: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+        ratingBreakdown: createEmptyRatingBreakdown(),
         createdAt: serverTimestamp()
       });
 
@@ -91,50 +97,57 @@ export default function SetupProfile() {
     if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(0);
+    setUploadingPhoto(photoNum);
+    setUploadProgressByPhoto((prev) => ({ ...prev, [photoNum]: 1 }));
     try {
-      const idToken = await auth.currentUser.getIdToken();
-      let downloadURL: string;
-      
-      try {
-        setUploadProgress(5);
-        downloadURL = await uploadPhotoWithPresignedUrl(
-          {
-            file,
-            uid: auth.currentUser.uid,
-            photoNum,
-            idToken,
-          },
-          (p) => setUploadProgress(5 + (p * 0.95))
-        );
-      } catch (presignedError: any) {
-        console.warn('S3 upload failed, attempt fallback to Firebase:', presignedError);
-        // If it's a server config error, don't just silently fallback if we want to debug S3
-        if (presignedError.message?.includes('Server misconfigured')) {
-          throw presignedError; 
-        }
-        
-        const storagePath = `profiles/${auth.currentUser.uid}/photo_${photoNum}_${Date.now()}_${file.name}`;
-        downloadURL = await uploadFileWithProgress(storage, storagePath, file, (p) => setUploadProgress(p));
-      }
+      const idToken = await timeoutPromise(auth.currentUser.getIdToken(), 12000, 'Auth token retrieval');
+      setUploadProgressByPhoto((prev) => ({ ...prev, [photoNum]: 5 }));
+      const downloadURL = await timeoutPromise(
+        uploadPhotoWithPresignedUrl(
+        {
+          file,
+          uid: auth.currentUser!.uid,
+          photoNum,
+          idToken,
+        },
+        (p) =>
+          setUploadProgressByPhoto((prev) => ({
+            ...prev,
+            [photoNum]: Math.min(100, Math.max(5, Math.round(5 + p * 0.95))),
+          })),
+      ),
+        90000,
+        'Photo upload',
+      );
       
       if (photoNum === 1) setPhoto1(downloadURL);
       if (photoNum === 2) setPhoto2(downloadURL);
-    } catch (error: any) {
+      setUploadProgressByPhoto((prev) => ({ ...prev, [photoNum]: 100 }));
+    } catch (error: unknown) {
       console.error('Error uploading photo:', error);
-      const message = error?.message ? String(error.message) : 'Unknown upload error.';
+      const message = error instanceof Error ? error.message : 'Unknown upload error.';
       
       let userFriendlyMessage = message;
       if (message.includes('Missing AWS credentials')) {
         userFriendlyMessage = "AWS S3 keys are not set in the AI Studio menu. Please add AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, and AWS_S3_BUCKET to your Secrets.";
       } else if (message.includes('CORS')) {
         userFriendlyMessage = "Upload blocked by S3 CORS policy. Please enable CORS in your AWS S3 bucket settings.";
+      } else if (message.includes('Could not reach signing server')) {
+        const configuredEndpoint = (() => {
+          try {
+            return getSigningEndpoint();
+          } catch {
+            return import.meta.env.VITE_UPLOAD_SIGN_URL || '/api/sign-upload';
+          }
+        })();
+        userFriendlyMessage = `Signing server is not reachable at ${configuredEndpoint}. Check server health endpoint and your network connectivity.`;
       }
       
       alert(`Upload Error:\n\n${userFriendlyMessage}`);
     } finally {
       setIsUploading(false);
-      setUploadProgress(null);
+      setUploadingPhoto(null);
+      setUploadProgressByPhoto((prev) => ({ ...prev, [photoNum]: null }));
     }
   };
 
@@ -195,7 +208,9 @@ export default function SetupProfile() {
               <Plus className="text-white/50" size={36} />
             )}
           </label>
-          <span className="text-[13px] font-medium text-white/80 text-center">{isUploading ? `${uploadProgress ?? 0}%` : 'Photo 1'}</span>
+          <span className="text-[13px] font-medium text-white/80 text-center">
+            {uploadProgressByPhoto[1] !== null ? `${uploadProgressByPhoto[1]}%` : 'Photo 1'}
+          </span>
         </div>
 
         {/* Photo 2 */}
@@ -218,7 +233,9 @@ export default function SetupProfile() {
               </>
             )}
           </label>
-          <span className="text-[13px] font-medium text-white/80 text-center">{isUploading ? `${uploadProgress ?? 0}%` : 'Photo 2'}</span>
+          <span className="text-[13px] font-medium text-white/80 text-center">
+            {uploadProgressByPhoto[2] !== null ? `${uploadProgressByPhoto[2]}%` : 'Photo 2'}
+          </span>
         </div>
       </section>
 
@@ -250,7 +267,7 @@ export default function SetupProfile() {
           disabled={isSaving || isUploading}
           className="w-full h-[58px] bg-coral-gradient rounded-[16px] text-white font-bold text-[17px] shadow-[0_4px_24px_rgba(255,77,109,0.3)] flex items-center justify-center active:scale-[0.98] transition-all disabled:opacity-70 disabled:scale-100"
         >
-          {isSaving ? 'Saving...' : 'Save & Continue'}
+          {isSaving ? 'Saving...' : isUploading && uploadingPhoto ? `Uploading photo ${uploadingPhoto}...` : 'Save & Continue'}
         </button>
       </footer>
     </main>

@@ -18,3 +18,14 @@ View your app in AI Studio: https://ai.studio/apps/2f97dad7-97ab-4f08-85bc-0bbb4
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Backend Modes
+
+- `npm run dev` or `npm run server:full`
+  - Runs unified local server (`server.ts`) on `http://localhost:3000`
+  - Serves frontend + `/api/sign-upload`
+- `npm run server:dev`
+  - Runs signer-only backend (`aws/signer-v2/server.mjs`) on `http://localhost:3100`
+
+If you use `server:dev`, set `VITE_UPLOAD_SIGN_URL=http://localhost:3100/api/sign-upload`.
+For Android/iOS release builds, set `VITE_UPLOAD_SIGN_URL` to an HTTPS endpoint on your domain (for example: `https://api.yourdomain.com/api/sign-upload`).

@@ -1,0 +1,154 @@
+{
+  "project_info": {
+    "project_number": "614350035578",
+    "project_id": "myapplication-dc877d91",
+    "storage_bucket": "myapplication-dc877d91.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614350035578:android:bb006188d59dac926039c3",
+        "android_client_info": {
+          "package_name": "com.drate.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "614350035578-cnbrcmffe6gs7kdd0671lm1ni4dg728s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsZ6BeDJ5-uK2EEu37ZgWguqrCgzrT9IE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "614350035578-cnbrcmffe6gs7kdd0671lm1ni4dg728s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "614350035578-ohvck5ku5k7v4lgjdrbk0kadnjj3aqpb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.ratemeFlutter"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614350035578:android:0ecb453f2c7ef8c06039c3",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "614350035578-cnbrcmffe6gs7kdd0671lm1ni4dg728s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsZ6BeDJ5-uK2EEu37ZgWguqrCgzrT9IE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "614350035578-cnbrcmffe6gs7kdd0671lm1ni4dg728s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "614350035578-ohvck5ku5k7v4lgjdrbk0kadnjj3aqpb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.ratemeFlutter"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614350035578:android:723ee64fa5c9512b6039c3",
+        "android_client_info": {
+          "package_name": "com.example.rateme_flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "614350035578-cnbrcmffe6gs7kdd0671lm1ni4dg728s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsZ6BeDJ5-uK2EEu37ZgWguqrCgzrT9IE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "614350035578-cnbrcmffe6gs7kdd0671lm1ni4dg728s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "614350035578-ohvck5ku5k7v4lgjdrbk0kadnjj3aqpb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.ratemeFlutter"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614350035578:android:131f3b30e25c3b226039c3",
+        "android_client_info": {
+          "package_name": "com.katuk.rateme"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "614350035578-cnbrcmffe6gs7kdd0671lm1ni4dg728s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsZ6BeDJ5-uK2EEu37ZgWguqrCgzrT9IE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "614350035578-cnbrcmffe6gs7kdd0671lm1ni4dg728s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "614350035578-ohvck5ku5k7v4lgjdrbk0kadnjj3aqpb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.ratemeFlutter"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

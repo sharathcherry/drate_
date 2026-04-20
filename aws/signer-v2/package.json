@@ -1,0 +1,13 @@
+{
+  "name": "drate-upload-signer-v2",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.922.0",
+    "@aws-sdk/s3-request-presigner": "^3.922.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jose": "^6.1.0"
+  }
+}

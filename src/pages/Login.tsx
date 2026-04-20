@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { BrandMark } from '../components/BrandMark';
 import { auth } from '../firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithCredential, GoogleAuthProvider, fetchSignInMethodsForEmail, sendPasswordResetEmail } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
-function authErrorMessage(error: any) {
+type AuthErrorLike = {
+  code?: string;
+  message?: string;
+};
+
+function authErrorMessage(error: AuthErrorLike) {
   const code = String(error?.code || 'unknown');
   const rawMessage = String(error?.message || 'Authentication failed');
 
@@ -27,6 +32,15 @@ function authErrorMessage(error: any) {
   return `Code: ${code}\nMessage: ${rawMessage}${hint ? `\n\nFix: ${hint}` : ''}`;
 }
 
+function isCredentialMismatchCode(code: string) {
+  return (
+    code === 'auth/invalid-credential' ||
+    code === 'auth/invalid-login-credentials' ||
+    code === 'auth/wrong-password' ||
+    code === 'auth/user-not-found'
+  );
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -34,20 +48,67 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const handleForgotPassword = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      alert('Enter your email first, then tap "Forgot password" again.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, normalizedEmail);
+      alert('Password reset email sent. Check your inbox and spam folder.');
+    } catch (error: unknown) {
+      const authError = error as AuthErrorLike;
+      const code = String(authError?.code || 'unknown');
+
+      if (code === 'auth/invalid-email') {
+        alert('Please enter a valid email address.');
+      } else {
+        alert(authErrorMessage(authError));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return alert('Please enter both email and password.');
     setIsLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(auth, normalizedEmail, password);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, normalizedEmail, password);
       }
       navigate('/setup');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const authError = error as AuthErrorLike;
       console.error('Auth failed', error);
-      alert(error.message || 'Authentication failed. Please try again.');
+      const code = String(authError?.code || 'unknown');
+
+      if (!isSignUp && isCredentialMismatchCode(code)) {
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
+          const hasGoogle = methods.includes('google.com');
+          const hasPassword = methods.includes('password');
+
+          if (hasGoogle && !hasPassword) {
+            alert('This email is linked to Google sign-in. Please continue with Google, or set a password first using "Forgot password".');
+          } else if (hasPassword) {
+            alert('Invalid email/password. Please try again or use "Forgot password".');
+          } else {
+            alert('Unable to sign in with email/password. Double-check your credentials or use "Forgot password".');
+          }
+        } catch {
+          alert('Invalid email/password. Check your credentials or reset your password.');
+        }
+      } else {
+        alert(authErrorMessage(authError));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -74,9 +135,10 @@ export default function Login() {
         await signInWithPopup(auth, provider);
         navigate('/setup');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const authError = error as AuthErrorLike;
       console.error('Login failed', error);
-      alert(`Login failed.\n\n${authErrorMessage(error)}`);
+      alert(`Login failed.\n\n${authErrorMessage(authError)}`);
       setIsLoading(false);
     } 
   };
@@ -91,15 +153,7 @@ export default function Login() {
         <section className="flex-1 flex flex-col items-center justify-center space-y-6 px-6 relative py-8">
         
         {/* Logo App Icon */}
-        <div className="w-[84px] h-[84px] rounded-[22px] bg-gradient-to-b from-[#353538] to-[#1C1C1E] flex items-center justify-center shadow-2xl relative z-10 border border-white/5">
-          <Star className="text-[#FF8BA0]" size={42} fill="url(#star-gradient)" strokeWidth={0} />
-          <svg width="0" height="0">
-            <linearGradient id="star-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop stopColor="#FF8BA0" offset="0%" />
-              <stop stopColor="#FF4D6D" offset="100%" />
-            </linearGradient>
-          </svg>
-        </div>
+        <BrandMark size={84} className="relative z-10" textClassName="text-[46px]" />
         
         {/* Branding */}
         <div className="text-center relative z-10">
@@ -144,6 +198,18 @@ export default function Login() {
                 required
               />
             </div>
+            {!isSignUp ? (
+              <div className="flex justify-end -mt-1">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isLoading}
+                  className="text-[13px] text-[#FF8BA0] font-semibold hover:text-[#FF4D6D] transition-colors disabled:opacity-70"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            ) : null}
             <button 
               type="submit"
               disabled={isLoading}

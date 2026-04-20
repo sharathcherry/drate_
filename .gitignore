@@ -1,0 +1,28 @@
+.vercel
+
+# Local environment files containing secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+ios/App/build/
+tmp_installed_apk/
+
+# Local IDE/editor state
+.idea/
+.vscode/
+
+# Temporary/log artifacts
+*.log
+hs_err_pid*
+replay_pid*
+tmp_*

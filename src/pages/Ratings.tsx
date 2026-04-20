@@ -5,6 +5,8 @@ import { Star } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { collection, query, where, getDocs, doc, getDoc, limit } from 'firebase/firestore';
 import { getDummyProfile } from '../lib/dummyData';
+import { formatTimeAgo, toUnixMs } from '../lib/time';
+import type { TimestampLike } from '../lib/types';
 
 interface RatingData {
   id: string;
@@ -12,30 +14,15 @@ interface RatingData {
   targetId?: string;
   score?: number;
   comment?: string;
-  createdAt?: any;
-  targetProfile?: any;
-}
-
-function formatTimeAgo(timestamp: any) {
-  if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return 'Just now';
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return `${diffInDays}d ago`;
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return `${diffInMonths}mo ago`;
-  return `${Math.floor(diffInMonths / 12)}y ago`;
+  createdAt?: TimestampLike;
+  targetProfile?: {
+    displayName?: string;
+    photos?: string[];
+  } | null;
 }
 
 export default function Ratings() {
-  const [ratings, setRatings] = useState<any[]>([]);
+  const [ratings, setRatings] = useState<RatingData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,7 +37,7 @@ export default function Ratings() {
         const snapshot = await getDocs(q);
         
         // Use a local cache to avoid fetching the same targetProfile multiple times
-        const profileCache: Record<string, any> = {};
+        const profileCache: Record<string, RatingData['targetProfile']> = {};
         
         // Execute profile fetches concurrently using Promise.all
         const ratingsData = await Promise.all(snapshot.docs.map(async (docSnap) => {
@@ -84,8 +71,8 @@ export default function Ratings() {
         
         // Sort by createdAt descending in memory
         ratingsData.sort((a, b) => {
-          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          const timeA = toUnixMs(a.createdAt);
+          const timeB = toUnixMs(b.createdAt);
           return timeB - timeA;
         });
 
@@ -145,9 +132,9 @@ export default function Ratings() {
                       {[1, 2, 3, 4, 5].map(i => (
                         <Star 
                           key={i} 
-                          className={i <= rating.score ? "text-[#F5C842]" : "text-white/20"} 
+                          className={i <= (rating.score ?? 0) ? "text-[#F5C842]" : "text-white/20"} 
                           size={15} 
-                          fill={i <= rating.score ? "currentColor" : "none"} 
+                          fill={i <= (rating.score ?? 0) ? "currentColor" : "none"} 
                         />
                       ))}
                     </div>

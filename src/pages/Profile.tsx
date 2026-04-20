@@ -2,16 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Star, Lock, Sparkles, Settings, X, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BottomNavBar } from '../components/BottomNavBar';
-import { auth, db, storage } from '../firebase';
+import { auth, db } from '../firebase';
 import { doc, collection, query, where, getDocs, onSnapshot, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { GoogleGenAI } from "@google/genai";
 import { uploadPhotoWithPresignedUrl } from '../lib/presignedUpload';
-import { uploadFileWithProgress } from '../lib/firebaseUpload';
+import { StartupSplash } from '../components/StartupSplash';
+import { timeoutPromise } from '../lib/async';
+import type { PublicProfile, RatingRecord } from '../lib/types';
+
+function toPublicProfile(uid: string, data: Partial<PublicProfile>): PublicProfile {
+  return {
+    uid: data.uid || uid,
+    displayName: data.displayName || 'Anonymous',
+    location: data.location || 'Global',
+    photos: Array.isArray(data.photos) ? data.photos : [],
+    reviewsGivenCount: typeof data.reviewsGivenCount === 'number' ? data.reviewsGivenCount : 0,
+    averageRating: typeof data.averageRating === 'number' ? data.averageRating : 0,
+    totalRatings: typeof data.totalRatings === 'number' ? data.totalRatings : 0,
+    ratingBreakdown:
+      data.ratingBreakdown || { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+    createdAt: data.createdAt,
+  };
+}
 
 export default function Profile() {
-  const [profile, setProfile] = useState<any>(null);
-  const [ratings, setRatings] = useState<any[]>([]);
+  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [ratings, setRatings] = useState<RatingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -27,12 +43,13 @@ export default function Profile() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
 
     // Listen to profile changes in real-time
-    const unsubscribeProfile = onSnapshot(doc(db, 'publicProfiles', auth.currentUser.uid), (docSnap) => {
+    const unsubscribeProfile = onSnapshot(doc(db, 'publicProfiles', currentUser.uid), (docSnap) => {
       if (docSnap.exists()) {
-        setProfile(docSnap.data());
+        setProfile(toPublicProfile(docSnap.id, docSnap.data() as Partial<PublicProfile>));
       }
     });
 
@@ -41,13 +58,13 @@ export default function Profile() {
         // Fetch ratings received
         const q = query(
           collection(db, 'ratings'), 
-          where('targetId', '==', auth.currentUser.uid)
+          where('targetId', '==', currentUser.uid)
         );
         const ratingsSnap = await getDocs(q);
-        const fetchedRatings = ratingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const fetchedRatings = ratingsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as RatingRecord);
         
         // Sort locally by date descending
-        fetchedRatings.sort((a: any, b: any) => {
+        fetchedRatings.sort((a, b) => {
           const timeA = a.createdAt?.toMillis() || 0;
           const timeB = b.createdAt?.toMillis() || 0;
           return timeB - timeA;
@@ -89,31 +106,35 @@ export default function Profile() {
     setIsUploadingPhoto(true);
     setUploadProgress(0);
     try {
-      const idToken = await auth.currentUser.getIdToken();
-      let downloadURL: string;
-      try {
-        downloadURL = await uploadPhotoWithPresignedUrl(
-          {
-            file,
-            uid: auth.currentUser.uid,
-            photoNum,
-            idToken,
-          },
-          setUploadProgress,
-        );
-      } catch (presignedError) {
-        // Fallback for browser-side S3 CORS/network issues.
-        const storagePath = `profiles/${auth.currentUser.uid}/photo_${photoNum}_${Date.now()}_${file.name}`;
-        downloadURL = await uploadFileWithProgress(storage, storagePath, file, setUploadProgress);
-      }
+      const idToken = await timeoutPromise(auth.currentUser.getIdToken(), 12000, 'Auth token retrieval');
+      const downloadURL = await timeoutPromise(
+        uploadPhotoWithPresignedUrl(
+        {
+          file,
+          uid: auth.currentUser.uid,
+          photoNum,
+          idToken,
+        },
+        setUploadProgress,
+      ),
+        90000,
+        'Photo upload',
+      );
       
       if (photoNum === 1) setEditPhoto1(downloadURL);
       if (photoNum === 2) setEditPhoto2(downloadURL);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading photo:', error);
-      const code = error?.code ? String(error.code) : 'unknown';
-      const message = error?.message ? String(error.message) : 'No error message from upload service.';
-      alert(`Failed to upload photo.\n\nCode: ${code}\nMessage: ${message}`);
+      const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : 'unknown';
+      const message = error instanceof Error ? error.message : 'No error message from upload service.';
+      const userMessage = message.includes('storage/unauthorized')
+        ? 'Upload failed due storage permissions on S3. Check signer and bucket policy/CORS.'
+        : message.includes('Missing AWS credentials')
+        ? 'Signer backend is missing AWS configuration.'
+        : message.includes('Could not reach signing server')
+        ? 'Signer backend is unreachable.'
+        : message;
+      alert(`Failed to upload photo.\n\nCode: ${code}\nMessage: ${userMessage}`);
     } finally {
       setIsUploadingPhoto(false);
       setUploadProgress(null);
@@ -143,8 +164,6 @@ export default function Profile() {
   const generateAiAnalysis = async () => {
     setIsGeneratingAi(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
       const comments = ratings.filter(r => r.comment).map(r => r.comment);
       if (comments.length === 0) {
         setAiAnalysis("Not enough comments to generate an analysis yet! Get more reviews.");
@@ -152,14 +171,27 @@ export default function Profile() {
         return;
       }
 
-      const prompt = `You are an expert dating and social profile consultant. Based on the following anonymous feedback comments a user received, write a fun, encouraging, and constructive 3-sentence summary of their "vibe", what people like about them, and one piece of constructive advice. Keep it lighthearted and use emojis. Comments: ${comments.join(" | ")}`;
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        throw new Error('Missing auth token');
+      }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
+      const response = await fetch('/api/ai/profile-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ comments }),
       });
 
-      setAiAnalysis(response.text || "Couldn't generate analysis.");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Server Error (${response.status})`);
+      }
+
+      const data = await response.json();
+      setAiAnalysis(data.analysis || "Couldn't generate analysis.");
     } catch (error) {
       console.error("Error generating AI analysis", error);
       setAiAnalysis("Oops, couldn't generate the analysis right now.");
@@ -173,7 +205,7 @@ export default function Profile() {
   const avgRating = totalReviews > 0 ? ratingsSum / totalReviews : 0;
 
   if (loading) {
-    return <div className="min-h-screen bg-[#131315] flex items-center justify-center text-[#F0EEE8]">Loading profile...</div>;
+    return <StartupSplash />;
   }
 
   const reviewsGiven = profile?.reviewsGivenCount || 0;
